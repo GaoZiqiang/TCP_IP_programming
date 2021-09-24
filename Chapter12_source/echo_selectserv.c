@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <iostream>
 
 #define BUF_SIZE 100
 void error_handling(char *buf);
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	}
 
 	serv_sock=socket(PF_INET, SOCK_STREAM, 0);
-	printf("serv_socket1: %d\n",serv_sock);
+	printf("serv_socket: %d\n",serv_sock);
 	memset(&serv_adr, 0, sizeof(serv_adr));
 	serv_adr.sin_family=AF_INET;
 	serv_adr.sin_addr.s_addr=htonl(INADDR_ANY);
@@ -38,7 +39,6 @@ int main(int argc, char *argv[])
 	if(listen(serv_sock, 5)==-1)
 		error_handling("listen() error");
 
-    printf("serv_socket2: %d\n",serv_sock);
 	// 初始化fd_read
 	FD_ZERO(&reads);
     // 将服务器端socket fd添加到被监控的fd_read数组
@@ -71,13 +71,16 @@ int main(int argc, char *argv[])
                 // 如果监测到serv_sock的fd发生了变化，则表示服务器端接收到了客户端发来的连接请求--因此需要进行accept-connect
 			    // 监测到serv_sock的fd发生变化
 
-			    // accept客户端的连接申请
+			    // server端接收到来自客户端的连接申请
 				if(i==serv_sock)     // connection request!
 				{
 				    printf("serv_sock %d 发生了事件\n",i);
 					adr_sz=sizeof(clnt_adr);
+					// accept
 					clnt_sock=
 						accept(serv_sock, (struct sockaddr*)&clnt_adr, &adr_sz);
+                    std::cout<<"ip="<<inet_ntoa(clnt_adr.sin_addr)<<
+                             " port="<<ntohs(clnt_adr.sin_port)<<std::endl;
 					// 将clnt_sock添加到fd_set数组中
 					FD_SET(clnt_sock, &reads);
 					if(fd_max<clnt_sock)
@@ -91,8 +94,7 @@ int main(int argc, char *argv[])
 				{
                     printf("clnt_sock %d 发生了事件\n",i);
 					str_len=read(i, buf, BUF_SIZE);
-                    buf[str_len]=0;
-                    printf("message from client %d: %s", i,buf);
+
 					// read到的数据str_len为0--表明客户端不再发送数据-->关闭client socket
 					if(str_len==0)    // close request!
 					{
@@ -103,6 +105,10 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+					    // 输出到console
+                        buf[str_len]=0;
+                        printf("message from client %d: %s", i,buf);
+                        // 发送回/写回client端
 						write(i, buf, str_len);    // echo!
 					}
 				}
