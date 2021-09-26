@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
 
 		// 需要每次都传递监视对象信息--向操作系统传递--改进：只传递一次
 		// 使用select()监视cpy_reads中各个socket fd的变化情况
+		// 手动将cpy_reads从用户空间拷贝到内核空间
 		if((fd_num=select(fd_max+1, &cpy_reads, 0, 0, &timeout))==-1)// 后续判断为什么不适用fd_num呢？
 			break;
 		
